@@ -51,6 +51,7 @@ ${DEVROOT}/usr/bin/lipo \
 	-arch armv7 ${TMP_DIR}/armv7/lib/libcurl.a \
 	-arch armv7s ${TMP_DIR}/armv7s/lib/libcurl.a \
 	-arch arm64 ${TMP_DIR}/arm64/lib/libcurl.a \
+	-arch i386 ${TMP_DIR}/i386/lib/libcurl.a \
 	-output ${TMP_DIR}/lib/libcurl.a -create
 
 cp -r ${TMP_DIR}/arm64/include ${TMP_DIR}/
