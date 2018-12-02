@@ -1,6 +1,7 @@
-#!/bin/bash
+#!/bin/bash -euo pipefail
 
-export DEVROOT=/Applications/Xcode.app/Contents/Developer/Toolchains/XcodeDefault.xctoolchain
+readonly XCODE_DEV="$(xcode-select -p)"
+export DEVROOT="${XCODE_DEV}/Toolchains/XcodeDefault.xctoolchain"
 DFT_DIST_DIR=${HOME}/Desktop/libcurl-ios-dist
 DIST_DIR=${DIST_DIR:-$DFT_DIST_DIR}
 
@@ -19,12 +20,12 @@ function build_for_arch() {
   PREFIX=$4
   IPHONEOS_DEPLOYMENT_TARGET="6.0"
   export PATH="${DEVROOT}/usr/bin/:${PATH}"
-  export CFLAGS="-DCURL_BUILD_IOS -arch ${ARCH} -pipe -Os -gdwarf-2 -isysroot ${SYSROOT} -miphoneos-version-min=${IPHONEOS_DEPLOYMENT_TARGET} -fembed-bitcode"
+  export CFLAGS="-DCURL_BUILD_IOS -arch ${ARCH} -pipe -Os -gdwarf-2 -isysroot ${SYSROOT} -miphoneos-version-min=${IPHONEOS_DEPLOYMENT_TARGET} -fembed-bitcode" -DENABLE_IPV6
   export LDFLAGS="-arch ${ARCH} -isysroot ${SYSROOT}"
-  ./configure --disable-shared --without-zlib --enable-static --enable-ipv6 ${SSL_FLAG} --host="${HOST}" --prefix=${PREFIX} && make -j8 && make install
+  ./configure --enable-threaded-resolver --disable-shared --without-zlib --enable-static --enable-ipv6 ${SSL_FLAG} --host="${HOST}" --prefix=${PREFIX} && make -j8 && make install
 }
 
-if [ "$1" == "openssl" ]
+if [ "${1:-''}" == "openssl" ]
 then
   if [ ! -d ${HOME}/Desktop/openssl-ios-dist ]
   then
@@ -39,20 +40,20 @@ fi
 
 TMP_DIR=/tmp/build_libcurl_$$
 
-build_for_arch i386 i386-apple-darwin /Applications/Xcode.app/Contents/Developer/Platforms/iPhoneSimulator.platform/Developer/SDKs/iPhoneSimulator.sdk ${TMP_DIR}/i386 || exit 1
-build_for_arch x86_64 x86_64-apple-darwin /Applications/Xcode.app/Contents/Developer/Platforms/iPhoneSimulator.platform/Developer/SDKs/iPhoneSimulator.sdk ${TMP_DIR}/x86_64 || exit 2
-build_for_arch arm64 arm-apple-darwin /Applications/Xcode.app/Contents/Developer/Platforms/iPhoneOS.platform/Developer/SDKs/iPhoneOS.sdk ${TMP_DIR}/arm64 || exit 3
-build_for_arch armv7s armv7s-apple-darwin /Applications/Xcode.app/Contents/Developer/Platforms/iPhoneOS.platform/Developer/SDKs/iPhoneOS.sdk ${TMP_DIR}/armv7s || exit 4
-build_for_arch armv7 armv7-apple-darwin /Applications/Xcode.app/Contents/Developer/Platforms/iPhoneOS.platform/Developer/SDKs/iPhoneOS.sdk ${TMP_DIR}/armv7 || exit 5
+build_for_arch i386 i386-apple-darwin ${XCODE_DEV}/Platforms/iPhoneSimulator.platform/Developer/SDKs/iPhoneSimulator.sdk ${TMP_DIR}/i386 || exit 1
+build_for_arch x86_64 x86_64-apple-darwin ${XCODE_DEV}/Platforms/iPhoneSimulator.platform/Developer/SDKs/iPhoneSimulator.sdk ${TMP_DIR}/x86_64 || exit 2
+build_for_arch arm64 arm-apple-darwin ${XCODE_DEV}/Platforms/iPhoneOS.platform/Developer/SDKs/iPhoneOS.sdk ${TMP_DIR}/arm64 || exit 3
+build_for_arch armv7s armv7s-apple-darwin ${XCODE_DEV}/Platforms/iPhoneOS.platform/Developer/SDKs/iPhoneOS.sdk ${TMP_DIR}/armv7s || exit 4
+build_for_arch armv7 armv7-apple-darwin ${XCODE_DEV}/Platforms/iPhoneOS.platform/Developer/SDKs/iPhoneOS.sdk ${TMP_DIR}/armv7 || exit 5
 
 mkdir -p ${TMP_DIR}/lib/
 ${DEVROOT}/usr/bin/lipo \
-	-arch x86_64 ${TMP_DIR}/x86_64/lib/libcurl.a \
-	-arch armv7 ${TMP_DIR}/armv7/lib/libcurl.a \
-	-arch armv7s ${TMP_DIR}/armv7s/lib/libcurl.a \
-	-arch arm64 ${TMP_DIR}/arm64/lib/libcurl.a \
-	-arch i386 ${TMP_DIR}/i386/lib/libcurl.a \
-	-output ${TMP_DIR}/lib/libcurl.a -create
+  -arch x86_64 ${TMP_DIR}/x86_64/lib/libcurl.a \
+  -arch armv7 ${TMP_DIR}/armv7/lib/libcurl.a \
+  -arch armv7s ${TMP_DIR}/armv7s/lib/libcurl.a \
+  -arch arm64 ${TMP_DIR}/arm64/lib/libcurl.a \
+  -arch i386 ${TMP_DIR}/i386/lib/libcurl.a \
+  -output ${TMP_DIR}/lib/libcurl.a -create
 
 cp -r ${TMP_DIR}/arm64/include ${TMP_DIR}/
 
